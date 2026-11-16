@@ -738,6 +738,7 @@ function renderRules(){
   <div class="row" style="margin-top:8px"><div class="field"><label>التنبيه قبل (ثانية)</label><input type="number" id="cLead" min="10" max="300" value="${c.lead}"></div><div class="field"><label>رصيد العرضية</label><input type="number" id="cA" min="0" max="30" value="${c.ardiya}"></div></div>
   <div class="row" style="margin-top:12px"><button class="btn primary" style="flex:2" id="cSave">احفظ الإعدادات</button><button class="btn ghost" style="flex:1" id="cReset">الافتراضي</button></div>
   <button class="btn ghost wide" id="cTest" style="margin-top:10px">جرّب التنبيه المميّز</button></div>
+  ${N?"":`<div class="card"><h3>نسخة أندرويد</h3><p>فيها الالتقاط التلقائي لوقت الحضور حين تفتح تطبيق الوزارة، وقراءة لقطة الشاشة، والتنبيه والتطبيق مغلق.</p><a class="btn primary wide" style="text-decoration:none" href="https://github.com/taroot80-blip/basma-marna/releases/latest/download/basma.apk">نزّل التطبيق لأندرويد</a></div>`}
   <p class="muted">المصادر: صحيفة الجريدة (١٥/٢/٢٠٢٤، ٢٢/٢/٢٠٢٤، ١٦/٨/٢٠٢٤، ١٩/٩/٢٠٢٤، ٢٢/٦/٢٠٢٥، ٢٤/٥/٢٠٢٦)، وجريدة الراي (أغسطس ٢٠٢٤).</p>`;
   const $=id=>document.getElementById(id);
   $("cStage").onchange=()=>{const s=STAGES[$("cStage").value];$("cE").value=toHHMM(s.earliest);$("cG").value=toHHMM(s.graceEnd);$("cL").value=toHHMM(s.latestOut);$("cW").value=s.workMin/60;toast(`ضُبطت أوقات المرحلة ${s.label}. اضغط «احفظ الإعدادات».`)};
