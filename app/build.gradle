@@ -1,0 +1,36 @@
+plugins { id 'com.android.application' }
+
+def v = { String e -> System.getenv(e) }
+
+android {
+    namespace 'com.taroot.basma'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'org.daralemaam.basma'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+    signingConfigs {
+        release {
+            storeFile rootProject.file(v('KS_FILE') ?: 'basma-upload.jks')
+            storePassword v('KS_PASSWORD')
+            keyAlias v('KS_ALIAS') ?: 'basma'
+            keyPassword v('KS_PASSWORD')
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (System.getenv('KS_PASSWORD')) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError false; checkReleaseBuilds false }
+    bundle { language { enableSplit = false } }
+}
+
+dependencies {
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
+}
