@@ -9,10 +9,17 @@ android {
         applicationId 'org.daralemaam.basma'
         minSdk 26
         targetSdk 36
-        versionCode 2
-        versionName '1.1'
+        versionCode 3
+        versionName '1.2'
     }
     signingConfigs {
+        // مفتاح ثابت لنسخ التجربة المنشورة على GitHub، حتى يُثبَّت كل تحديث فوق سابقه.
+        test {
+            storeFile rootProject.file('basma-test.keystore')
+            storePassword 'basma-test'
+            keyAlias 'basmatest'
+            keyPassword 'basma-test'
+        }
         release {
             storeFile rootProject.file(v('KS_FILE') ?: 'basma-upload.jks')
             storePassword v('KS_PASSWORD')
@@ -21,6 +28,7 @@ android {
         }
     }
     buildTypes {
+        debug { signingConfig signingConfigs.test }
         release {
             minifyEnabled false
             if (System.getenv('KS_PASSWORD')) signingConfig signingConfigs.release
