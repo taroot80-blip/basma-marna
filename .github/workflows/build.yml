@@ -29,7 +29,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: basma, path: out/ }
       - name: Publish latest APK
-        env: { GH_TOKEN: ${{ github.token }} }
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete latest --yes --cleanup-tag 2>/dev/null || true
           gh release create latest out/basma.apk --title "بصمتي المرنة — أحدث نسخة" \
