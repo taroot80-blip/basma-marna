@@ -29,12 +29,13 @@ final class Scheduler {
             return null;
         }
         double earliest = cfg.optDouble("earliest", 430);
-        double work = cfg.optDouble("workMin", 360);
+        double work = cfg.optDouble("workMin", 370);
         double latest = cfg.optDouble("latestOut", 845);
         double delay = cfg.optDouble("presDelay", 120);
         double len = cfg.optDouble("presLen", 60);
-        double ps = hi + delay;
-        double pe = lo + delay + len;
+        // الحضور قبل بداية السماح يُحتسب من بدايتها، وكل تأخير يؤخّر التواجد والانصراف.
+        double ps = Math.max(hi, earliest) + delay;
+        double pe = Math.max(lo, earliest) + delay + len;
         double out = Math.min(Math.max(hi, earliest) + work, latest);
         return new double[] {ps, pe, out};
     }
