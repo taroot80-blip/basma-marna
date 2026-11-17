@@ -38,6 +38,8 @@ public class AlarmReceiver extends BroadcastReceiver {
     }
 
     private static void mark(Context c, String key) {
+        double now = Store.minOf(System.currentTimeMillis());
+        if (now < 360 || now >= 900) return; // خارج نطاق الدوام: من 6:00 ص إلى 3:00 م فقط
         String date = Store.today();
         JSONObject d = Store.day(c, date);
         try {
