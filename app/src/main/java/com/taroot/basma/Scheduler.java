@@ -34,9 +34,10 @@ final class Scheduler {
         double delay = cfg.optDouble("presDelay", 120);
         double len = cfg.optDouble("presLen", 60);
         // الحضور قبل بداية السماح يُحتسب من بدايتها، وكل تأخير يؤخّر التواجد والانصراف.
-        double ps = Math.max(hi, earliest) + delay;
+        final double pad = 1; // البصمة تصح بعد مضيّ الدقيقة كاملة
+        double ps = Math.max(hi, earliest) + delay + pad;
         double pe = Math.max(lo, earliest) + delay + len;
-        double out = Math.min(Math.max(hi, earliest) + work, latest);
+        double out = Math.min(Math.max(hi, earliest) + work, latest) + pad;
         return new double[] {ps, pe, out};
     }
 
