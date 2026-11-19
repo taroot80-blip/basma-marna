@@ -31,6 +31,12 @@ public class WatchService extends Service {
     private long pendingCloseTs;
     private boolean open;
 
+    static void stop(Context c) {
+        try {
+            c.stopService(new Intent(c, WatchService.class));
+        } catch (Exception ignored) { }
+    }
+
     static void start(Context c, long until) {
         if (until <= System.currentTimeMillis()) return;
         Intent i = new Intent(c, WatchService.class).putExtra("until", until);
@@ -56,14 +62,7 @@ public class WatchService extends Service {
 
     private void startFg() {
         Notifier.channels(this);
-        Notification n = new Notification.Builder(this, Notifier.CH_WATCH)
-                .setSmallIcon(R.drawable.ic_stat)
-                .setColor(0xFFF2B632)
-                .setContentTitle("بصمتي المرنة تترقّب بصمتك")
-                .setContentText("سأسجّل الوقت حين تفتح تطبيق الوزارة")
-                .setOngoing(true)
-                .setContentIntent(Notifier.openApp(this))
-                .build();
+        Notification n = Notifier.duty(this);
         try {
             if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(Notifier.ID_WATCH, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
@@ -88,10 +87,12 @@ public class WatchService extends Service {
                 open = false;
                 onSession(openTs, closeTs);
             }
-            if (now > until && !open && pendingCloseTs == 0) {
+            if (now > until) {
+                // 3:00 م: يخمد كل شيء مع انطفاء الأزرار.
                 finish();
                 return;
             }
+            refreshDuty();
             handler.postDelayed(this, TICK);
         }
     };
@@ -160,6 +161,19 @@ public class WatchService extends Service {
                         "نعم، بصمتُ الانصراف", AlarmReceiver.ACT_OUT);
             }
         } catch (JSONException ignored) { }
+    }
+
+    private String lastDuty = "";
+
+    /** يحدّث الإشعار الدائم حين تتغير البصمة القادمة. */
+    private void refreshDuty() {
+        Notifier.JSONObjectHolder s = Notifier.status(this);
+        String key = s.text + "|" + s.target;
+        if (key.equals(lastDuty)) return;
+        lastDuty = key;
+        try {
+            getSystemService(android.app.NotificationManager.class).notify(Notifier.ID_WATCH, Notifier.duty(this));
+        } catch (Exception ignored) { }
     }
 
     private void finish() {

@@ -10,6 +10,7 @@ import org.json.JSONObject;
 public class AlarmReceiver extends BroadcastReceiver {
     static final String ACT_PRES = "com.taroot.basma.DONE_PRES";
     static final String ACT_OUT = "com.taroot.basma.DONE_OUT";
+    static final String ACT_IN = "com.taroot.basma.DONE_IN";
 
     @Override
     public void onReceive(Context c, Intent intent) {
@@ -22,7 +23,12 @@ public class AlarmReceiver extends BroadcastReceiver {
                 if (kind != null && target > 0) Notifier.alert(c, kind, target);
                 break;
             case Scheduler.ACT_WATCH:
-                WatchService.start(c, intent.getLongExtra("until", 0));
+                // بداية نطاق الدوام: يضبط تنبيهات اليوم ويشغّل الخدمة في الخلفية حتى 3:00 م.
+                Scheduler.schedule(c);
+                break;
+            case ACT_IN:
+                markIn(c);
+                Notifier.cancel(c, Notifier.ID_IN_SOON, Notifier.ID_IN_LAST);
                 break;
             case ACT_PRES:
                 mark(c, "pres");
@@ -35,6 +41,20 @@ public class AlarmReceiver extends BroadcastReceiver {
             default:
                 Scheduler.schedule(c);
         }
+    }
+
+    /** «بصمتُ الحضور الآن» من الإشعار: يُسجَّل وقت الضغط إن لم يُسجَّل حضور. */
+    private static void markIn(Context c) {
+        double now = Store.minOf(System.currentTimeMillis());
+        if (now < Scheduler.DAY_FROM || now >= Scheduler.DAY_TO) return;
+        String date = Store.today();
+        JSONObject d = Store.day(c, date);
+        if (d.has("in") || d.has("lo")) return;
+        try {
+            d.put("in", Math.round(now * 60.0) / 60.0);
+        } catch (JSONException ignored) { }
+        Store.putDay(c, date, d);
+        Scheduler.schedule(c);
     }
 
     private static void mark(Context c, String key) {

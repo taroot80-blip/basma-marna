@@ -239,6 +239,8 @@ public class MainActivity extends Activity {
                 if (in.has("pres")) d.put("pres", in.getDouble("pres"));
                 if (in.has("out")) d.put("out", in.getDouble("out"));
                 d.put("exempt", in.optBoolean("exempt"));
+                if (in.has("mode")) d.put("mode", in.getString("mode"));
+                else if (in.optBoolean("reset")) d.remove("mode");
                 Store.putDay(MainActivity.this, date, d);
                 Scheduler.schedule(MainActivity.this);
             } catch (JSONException ignored) { }

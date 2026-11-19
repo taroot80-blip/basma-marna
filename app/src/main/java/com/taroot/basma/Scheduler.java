@@ -13,7 +13,9 @@ final class Scheduler {
 
     static final String ACT_ALERT = "com.taroot.basma.ALERT";
     static final String ACT_WATCH = "com.taroot.basma.WATCH";
-    private static final int[] ALERT_IDS = {1, 2, 3};
+    private static final int[] ALERT_IDS = {1, 2, 3, 7, 8};
+    /** نطاق الدوام: التطبيق يعمل وينبّه من 6:00 ص إلى 3:00 م فقط. */
+    static final double DAY_FROM = 360, DAY_TO = 900;
     private static final int[] WATCH_IDS = {4, 5, 6};
 
     /** {فتح التواجد، إغلاق التواجد، الانصراف} أو null إن لم يُعرف الحضور.
@@ -38,6 +40,17 @@ final class Scheduler {
         double ps = Math.max(hi, earliest) + delay + pad;
         double pe = Math.max(lo, earliest) + delay + len;
         double out = Math.min(Math.max(hi, earliest) + work, latest) + pad;
+        String mode = d.optString("mode", "");
+        if ("late".equals(mode)) {
+            // تأخير: يُحسب الحضور عند نهاية فترة السماح، والانصراف بعد 6 ساعات منها.
+            double a = cfg.optDouble("graceEnd", 475);
+            ps = a + delay + pad;
+            pe = a + delay + len;
+            out = a + 360 + pad;
+        } else if ("perm".equals(mode)) {
+            // استئذان صباحي: الانصراف في موعده الطبيعي.
+            out = Math.min(earliest + work, latest) + pad;
+        }
         return new double[] {ps, pe, out};
     }
 
@@ -54,29 +67,43 @@ final class Scheduler {
         long now = System.currentTimeMillis();
         double[] p = plan(cfg, d);
 
-        if (p != null && Store.workday(0)) {
-            if (!d.has("pres") && !d.optBoolean("exempt")) {
-                alert(c, am, 1, "pres", Store.msOf(p[0]), Store.msOf(p[0]) - (long) (leadSec * 1000), now);
-                alert(c, am, 2, "presLast", Store.msOf(p[1]), Store.msOf(p[1] - lastCall), now);
-                watch(c, am, 4, Store.msOf(p[0] - 5), Store.msOf(p[1] + 5), now);
-            }
-            if (!d.has("out")) {
-                alert(c, am, 3, "out", Store.msOf(p[2]), Store.msOf(p[2]) - (long) (leadSec * 1000), now);
-                watch(c, am, 5, Store.msOf(p[2] - 5), Store.msOf(latest + 45), now);
-            }
-        }
+        long dayFrom = Store.midnight(0) + (long) (DAY_FROM * 60000), dayTo = Store.midnight(0) + (long) (DAY_TO * 60000);
+        boolean workToday = Store.workday(0) && now < dayTo;
 
-        // نافذة الصباح: اليوم إن لم يُسجَّل الحضور ولم تنتهِ، وإلا أول يوم عمل قادم.
-        double mFrom = cfg.optDouble("earliest", 430) - 70;
-        double mTo = cfg.optDouble("graceEnd", 475) + 60;
-        int add = 0;
-        if (p != null || !Store.workday(0) || now > Store.midnight(0) + (long) (mTo * 60000)) {
-            add = 1;
+        if (workToday) {
+            if (p != null) {
+                if (!d.has("pres") && !d.optBoolean("exempt")) {
+                    alert(c, am, 1, "pres", Store.msOf(p[0]), Store.msOf(p[0]) - (long) (leadSec * 1000), now);
+                    alert(c, am, 2, "presLast", Store.msOf(p[1]), Store.msOf(p[1] - lastCall), now);
+                }
+                if (!d.has("out")) {
+                    alert(c, am, 3, "out", Store.msOf(p[2]), Store.msOf(p[2]) - (long) (leadSec * 1000), now);
+                }
+            } else {
+                // لم يُسجَّل الحضور: تنبيه عند اقتراب وقته، وتنبيه قبل نهاية فترة السماح بخمس دقائق.
+                double earliest = cfg.optDouble("earliest", 430), grace = cfg.optDouble("graceEnd", 475);
+                alert(c, am, 7, "inSoon", Store.msOf(earliest), Store.msOf(earliest - 10), now);
+                alert(c, am, 8, "inLast", Store.msOf(grace), Store.msOf(grace - 5), now);
+            }
+            // التطبيق يعمل في الخلفية طوال نطاق الدوام.
+            if (now >= dayFrom) WatchService.start(c, dayTo);
+            else startAt(c, am, 6, dayFrom, dayTo);
+        } else {
+            WatchService.stop(c);
+            int add = 1;
             while (!Store.workday(add) && add < 7) add++;
+            startAt(c, am, 6, Store.midnight(add) + (long) (DAY_FROM * 60000), Store.midnight(add) + (long) (DAY_TO * 60000));
         }
-        long from = Store.midnight(add) + (long) (mFrom * 60000);
-        long to = Store.midnight(add) + (long) (mTo * 60000);
-        watch(c, am, 6, from, to, now);
+    }
+
+    private static void startAt(Context c, AlarmManager am, int id, long from, long to) {
+        PendingIntent p = pi(c, ACT_WATCH, id, null, 0, to);
+        try {
+            if (canExact(am)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, from, p);
+            else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, from, p);
+        } catch (SecurityException e) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, from, p);
+        }
     }
 
     private static PendingIntent pi(Context c, String action, int id, String kind, long target, long until) {
@@ -94,6 +121,8 @@ final class Scheduler {
 
     private static void alert(Context c, AlarmManager am, int id, String kind, long target, long when, long now) {
         if (target <= now) return;
+        double t = Store.minOf(target);
+        if (t < DAY_FROM || t > DAY_TO) return;
         if (when < now) when = now + 1000;
         PendingIntent p = pi(c, ACT_ALERT, id, kind, target, 0);
         try {
@@ -109,18 +138,5 @@ final class Scheduler {
         }
     }
 
-    private static void watch(Context c, AlarmManager am, int id, long from, long to, long now) {
-        if (to <= now) return;
-        if (from <= now) {
-            WatchService.start(c, to);
-            return;
-        }
-        PendingIntent p = pi(c, ACT_WATCH, id, null, 0, to);
-        try {
-            if (canExact(am)) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, from, p);
-            else am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, from, p);
-        } catch (SecurityException e) {
-            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, from, p);
-        }
-    }
+
 }

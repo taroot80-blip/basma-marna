@@ -18,7 +18,7 @@ final class Notifier {
     static final String CH_ALERT = "basma_alert";
     static final String CH_DETECT = "basma_detect";
     static final String CH_WATCH = "basma_watch";
-    static final int ID_PRES = 101, ID_PRES_LAST = 102, ID_OUT = 103, ID_DETECT = 104, ID_WATCH = 7;
+    static final int ID_PRES = 101, ID_PRES_LAST = 102, ID_OUT = 103, ID_DETECT = 104, ID_WATCH = 7, ID_IN_SOON = 105, ID_IN_LAST = 106;
     static final String MOE = "com.moe.moemobileapp";
 
     static void channels(Context c) {
@@ -74,6 +74,16 @@ final class Notifier {
         int id;
         double t = Store.minOf(target);
         switch (kind) {
+            case "inSoon":
+                id = ID_IN_SOON;
+                title = "حان وقت بصمة الحضور";
+                body = "تبدأ فترة الحضور " + Store.fmt(t) + ". ابصم من تطبيق الوزارة، ثم سجّل وقتك.";
+                break;
+            case "inLast":
+                id = ID_IN_LAST;
+                title = "بقيت 5 دقائق على نهاية فترة السماح";
+                body = "تنتهي فترة السماح " + Store.fmt(t) + "، وبعدها يُحتسب تأخيرًا.";
+                break;
             case "presLast":
                 id = ID_PRES_LAST;
                 title = "تنبيه أخير: بصمة التواجد تُغلق";
@@ -104,7 +114,8 @@ final class Notifier {
                 .setTimeoutAfter(20 * 60 * 1000L)
                 .setContentIntent(openApp(c))
                 .addAction(act(c, "افتح تطبيق الوزارة", openMoe(c)));
-        if (kind.startsWith("pres")) b.addAction(act(c, "بصمتُ التواجد", action(c, AlarmReceiver.ACT_PRES, 71)));
+        if (kind.startsWith("in")) b.addAction(act(c, "بصمتُ الحضور الآن", action(c, AlarmReceiver.ACT_IN, 74)));
+        else if (kind.startsWith("pres")) b.addAction(act(c, "بصمتُ التواجد", action(c, AlarmReceiver.ACT_PRES, 71)));
         else b.addAction(act(c, "بصمتُ الانصراف", action(c, AlarmReceiver.ACT_OUT, 72)));
         c.getSystemService(NotificationManager.class).notify(id, b.build());
     }
@@ -123,6 +134,52 @@ final class Notifier {
                 .setContentIntent(openApp(c));
         if (confirmAct != null) b.addAction(act(c, confirmLabel, action(c, confirmAct, 73)));
         c.getSystemService(NotificationManager.class).notify(ID_DETECT, b.build());
+    }
+
+    /** الإشعار الدائم أثناء نطاق الدوام: البصمة القادمة مع عدّ تنازلي. */
+    static Notification duty(Context c) {
+        JSONObjectHolder s = status(c);
+        Notification.Builder b = new Notification.Builder(c, CH_WATCH)
+                .setSmallIcon(R.drawable.ic_stat)
+                .setColor(0xFFF2B632)
+                .setContentTitle(s.title)
+                .setContentText(s.text)
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setContentIntent(openApp(c));
+        if (s.target > 0) b.setWhen(s.target).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true);
+        else b.setShowWhen(false);
+        return b.build();
+    }
+
+    static final class JSONObjectHolder {
+        String title, text;
+        long target;
+    }
+
+    static JSONObjectHolder status(Context c) {
+        JSONObjectHolder s = new JSONObjectHolder();
+        org.json.JSONObject cfg = Store.cfg(c), d = Store.day(c, Store.today());
+        double[] p = Scheduler.plan(cfg, d);
+        double now = Store.minOf(System.currentTimeMillis());
+        s.title = "بصمتي المرنة تعمل حتى 3:00 م";
+        if (p == null) {
+            double grace = cfg.optDouble("graceEnd", 475);
+            s.text = now <= grace ? "البصمة القادمة: الحضور حتى " + Store.fmt(grace) : "لم يُسجَّل الحضور بعد";
+            s.target = now <= grace ? Store.msOf(grace) : 0;
+        } else if (!d.has("pres") && !d.optBoolean("exempt") && now <= p[1]) {
+            boolean open = now >= p[0];
+            s.text = open ? "بصمة التواجد مفتوحة الآن حتى " + Store.fmt(p[1]) : "البصمة القادمة: التواجد من " + Store.fmt(p[0]);
+            s.target = Store.msOf(open ? p[1] : p[0]);
+        } else if (!d.has("out")) {
+            boolean open = now >= p[2];
+            s.text = open ? "بصمة الانصراف صحيحة الآن" : "البصمة القادمة: الانصراف من " + Store.fmt(p[2]);
+            s.target = open ? 0 : Store.msOf(p[2]);
+        } else {
+            s.text = "أنهيتَ بصماتك اليوم ✓";
+            s.target = 0;
+        }
+        return s;
     }
 
     static void cancel(Context c, int... ids) {
