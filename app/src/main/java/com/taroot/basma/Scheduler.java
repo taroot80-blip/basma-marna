@@ -16,6 +16,10 @@ final class Scheduler {
     private static final int[] ALERT_IDS = {1, 2, 3, 7, 8};
     /** نطاق الدوام: التطبيق يعمل وينبّه من 6:00 ص إلى 3:00 م فقط. */
     static final double DAY_FROM = 360, DAY_TO = 900;
+    /** نظام التفعيل: يلغي قيد 6:00–15:00 للتجربة. */
+    static boolean test(Context c) { return Store.cfg(c).optBoolean("testMode", false); }
+    static double from(Context c) { return test(c) ? 0 : DAY_FROM; }
+    static double to(Context c) { return test(c) ? 1439.9 : DAY_TO; }
     private static final int[] WATCH_IDS = {4, 5, 6};
 
     /** {فتح التواجد، إغلاق التواجد، الانصراف} أو null إن لم يُعرف الحضور.
@@ -68,8 +72,8 @@ final class Scheduler {
         long now = System.currentTimeMillis();
         double[] p = plan(cfg, d);
 
-        long dayFrom = Store.midnight(0) + (long) (DAY_FROM * 60000), dayTo = Store.midnight(0) + (long) (DAY_TO * 60000);
-        boolean workToday = Store.workday(0) && now < dayTo;
+        long dayFrom = Store.midnight(0) + (long) (from(c) * 60000), dayTo = Store.midnight(0) + (long) (to(c) * 60000);
+        boolean workToday = (test(c) || Store.workday(0)) && now < dayTo;
 
         if (workToday) {
             if (p != null) {
@@ -123,7 +127,7 @@ final class Scheduler {
     private static void alert(Context c, AlarmManager am, int id, String kind, long target, long when, long now) {
         if (target <= now) return;
         double t = Store.minOf(target);
-        if (t < DAY_FROM || t > DAY_TO) return;
+        if (t < from(c) || t > to(c)) return;
         if (when < now) when = now + 1000;
         PendingIntent p = pi(c, ACT_ALERT, id, kind, target, 0);
         try {

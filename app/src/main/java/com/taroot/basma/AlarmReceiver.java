@@ -46,7 +46,7 @@ public class AlarmReceiver extends BroadcastReceiver {
     /** «بصمتُ الحضور الآن» من الإشعار: يُسجَّل وقت الضغط إن لم يُسجَّل حضور. */
     private static void markIn(Context c) {
         double now = Store.minOf(System.currentTimeMillis());
-        if (now < Scheduler.DAY_FROM || now >= Scheduler.DAY_TO) return;
+        if (now < Scheduler.from(c) || now >= Scheduler.to(c)) return;
         String date = Store.today();
         JSONObject d = Store.day(c, date);
         if (d.has("in") || d.has("lo")) return;
