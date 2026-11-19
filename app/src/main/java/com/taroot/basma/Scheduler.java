@@ -44,9 +44,10 @@ final class Scheduler {
         if ("late".equals(mode)) {
             // تأخير: يُحسب الحضور عند نهاية فترة السماح، والانصراف بعد 6 ساعات منها.
             double a = cfg.optDouble("graceEnd", 475);
-            ps = a + delay + pad;
-            pe = a + delay + len;
-            out = a + 360 + pad;
+            // النشرة 40/2024: تواجد المتأخر من (بداية السماح + ساعتين) حتى ساعة بعدها، وانصرافه عند نهاية الدوام الرسمي.
+            ps = Math.max(earliest + delay + pad, Math.ceil(hi));
+            pe = earliest + delay + len;
+            out = cfg.optDouble("offEnd", a + 360) + pad;
         } else if ("perm".equals(mode)) {
             // استئذان صباحي: الانصراف في موعده الطبيعي.
             out = Math.min(earliest + work, latest) + pad;
