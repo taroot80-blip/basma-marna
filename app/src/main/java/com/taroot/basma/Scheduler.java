@@ -55,6 +55,9 @@ final class Scheduler {
         } else if ("perm".equals(mode)) {
             // استئذان صباحي: الانصراف في موعده الطبيعي.
             out = Math.min(earliest + work, latest) + pad;
+            // التواجد: إن انتهى الاستئذان قبل النافذة فخلالها، وإن انتهى داخلها فبعد ساعة من الحضور.
+            double ws = earliest + delay + pad, we = earliest + delay + len;
+            if (hi < ws) { ps = ws; pe = we; } else { ps = Math.ceil(hi) + 60 + pad; pe = Math.ceil(hi) + 120; }
         }
         return new double[] {ps, pe, out};
     }
