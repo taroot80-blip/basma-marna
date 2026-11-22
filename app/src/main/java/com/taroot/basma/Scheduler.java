@@ -55,9 +55,9 @@ final class Scheduler {
         } else if ("perm".equals(mode)) {
             // استئذان صباحي: الانصراف من (بداية احتساب الاستئذان + مدة العمل) حتى آخر الانصراف.
             out = Math.min(d.optDouble("permFrom", earliest) + work, latest) + pad;
-            // التواجد: إن انتهى الاستئذان قبل النافذة فخلالها، وإن انتهى داخلها فبعد ساعة من الحضور.
-            double ws = earliest + delay + pad, we = earliest + delay + len;
-            if (hi < ws) { ps = ws; pe = we; } else { ps = Math.ceil(hi) + 60 + pad; pe = Math.ceil(hi) + 120; }
+            // التواجد: كمن حضر في وقت بداية الاستئذان المختار (7:10–7:55).
+            double pf = d.optDouble("permFrom", earliest);
+            ps = pf + delay + pad; pe = pf + delay + len;
         }
         return new double[] {ps, pe, out};
     }
