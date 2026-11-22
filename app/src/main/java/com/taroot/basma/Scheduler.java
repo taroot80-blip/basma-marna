@@ -53,8 +53,8 @@ final class Scheduler {
             pe = earliest + delay + len;
             out = cfg.optDouble("offEnd", a + 360) + pad;
         } else if ("perm".equals(mode)) {
-            // استئذان صباحي: الانصراف في موعده الطبيعي.
-            out = Math.min(earliest + work, latest) + pad;
+            // استئذان صباحي: الانصراف من (بداية احتساب الاستئذان + مدة العمل) حتى آخر الانصراف.
+            out = Math.min(d.optDouble("permFrom", earliest) + work, latest) + pad;
             // التواجد: إن انتهى الاستئذان قبل النافذة فخلالها، وإن انتهى داخلها فبعد ساعة من الحضور.
             double ws = earliest + delay + pad, we = earliest + delay + len;
             if (hi < ws) { ps = ws; pe = we; } else { ps = Math.ceil(hi) + 60 + pad; pe = Math.ceil(hi) + 120; }

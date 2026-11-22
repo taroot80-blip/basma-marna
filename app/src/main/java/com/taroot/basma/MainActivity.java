@@ -241,6 +241,8 @@ public class MainActivity extends Activity {
                 d.put("exempt", in.optBoolean("exempt"));
                 if (in.has("mode")) d.put("mode", in.getString("mode"));
                 else if (in.optBoolean("reset")) d.remove("mode");
+                if (in.has("permFrom")) d.put("permFrom", in.getDouble("permFrom"));
+                else if (in.optBoolean("reset")) d.remove("permFrom");
                 Store.putDay(MainActivity.this, date, d);
                 Scheduler.schedule(MainActivity.this);
             } catch (JSONException ignored) { }
