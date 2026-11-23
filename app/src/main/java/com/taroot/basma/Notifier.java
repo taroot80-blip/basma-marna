@@ -118,6 +118,7 @@ final class Notifier {
         else if (kind.startsWith("pres")) b.addAction(act(c, "بصمتُ التواجد", action(c, AlarmReceiver.ACT_PRES, 71)));
         else b.addAction(act(c, "بصمتُ الانصراف", action(c, AlarmReceiver.ACT_OUT, 72)));
         c.getSystemService(NotificationManager.class).notify(id, b.build());
+        if (Ringer.enabled(c)) Ringer.ring(c);
     }
 
     /** سؤال بعد إغلاق تطبيق الوزارة. */

@@ -116,6 +116,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        Ringer.stop(this);
         if (web != null) web.evaluateJavascript("window.onNativeResume&&window.onNativeResume()", null);
     }
 
@@ -281,6 +282,12 @@ public class MainActivity extends Activity {
                 }
             });
         }
+
+        @JavascriptInterface
+        public void testBell() { Ringer.ring(MainActivity.this); }
+
+        @JavascriptInterface
+        public void stopBell() { Ringer.stop(MainActivity.this); }
 
         @JavascriptInterface
         public void openMoe() {

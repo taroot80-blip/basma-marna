@@ -15,6 +15,7 @@ public class AlarmReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent intent) {
         String a = intent.getAction();
+        if (ACT_IN.equals(a) || ACT_PRES.equals(a) || ACT_OUT.equals(a)) Ringer.stop(c);
         if (a == null) return;
         switch (a) {
             case Scheduler.ACT_ALERT:
