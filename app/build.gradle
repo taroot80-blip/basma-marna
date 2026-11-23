@@ -9,8 +9,8 @@ android {
         applicationId 'org.daralemaam.basma'
         minSdk 26
         targetSdk 36
-        versionCode 28
-        versionName '2.9.9'
+        versionCode 29
+        versionName '2.9.10'
     }
     signingConfigs {
         // مفتاح ثابت لنسخ التجربة المنشورة على GitHub، حتى يُثبَّت كل تحديث فوق سابقه.
