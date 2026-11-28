@@ -41,7 +41,7 @@ import org.json.JSONObject;
 /** يعرض واجهة بصمتي المرنة من assets/www، ويصلها بالمنبهات والمراقبة وقراءة لقطة الشاشة. */
 public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
-    private static final int BG = 0xFF0B0805;
+    private static final int BG = 0xFF173A2B;
     private static final int REQ_IMG = 11, REQ_VOICE = 12, REQ_NOTIF = 13, REQ_FACE = 14;
 
     private WebView web;
