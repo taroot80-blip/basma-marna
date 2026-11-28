@@ -49,17 +49,26 @@ final class Scheduler {
             // تأخير: يُحسب الحضور عند نهاية فترة السماح، والانصراف بعد 6 ساعات منها.
             double a = cfg.optDouble("graceEnd", 475);
             // النشرة 40/2024: تواجد المتأخر من (بداية السماح + ساعتين) حتى ساعة بعدها، وانصرافه عند نهاية الدوام الرسمي.
-            ps = Math.max(earliest + delay + pad, Math.ceil(hi));
-            pe = earliest + delay + len;
+            double[] w = latePres(earliest, a, delay, len, lo);
+            ps = w[0]; pe = w[1];
             out = cfg.optDouble("offEnd", a + 360) + pad;
         } else if ("perm".equals(mode)) {
             // استئذان صباحي: الانصراف من (بداية احتساب الاستئذان + مدة العمل) حتى آخر الانصراف.
             out = Math.min(d.optDouble("permFrom", earliest) + work, latest) + pad;
             // التواجد: كمن حضر في وقت بداية الاستئذان المختار (7:10–7:55).
-            double pf = d.optDouble("permFrom", earliest);
-            ps = pf + delay + pad; pe = pf + delay + len;
+            double[] w = latePres(earliest, cfg.optDouble("graceEnd", 475), delay, len, lo);
+            ps = w[0]; pe = w[1];
         }
         return new double[] {ps, pe, out};
+    }
+
+    /** قانون تواجد المتأخر: قبل 9:11 ← 9:11–10:10، ومن 9:11 حتى 9:55 ← 9:56–10:55،
+     *  ومن 9:56 فما بعدها لا تواجد عليه (تُعفيه الواجهة، فتُعطى نافذة لا تنبيه فيها). */
+    static double[] latePres(double earliest, double grace, double delay, double len, double arr) {
+        double a = Math.floor(arr), w1 = earliest + delay + 1, w2 = grace + delay + 1;
+        if (a < w1) return new double[] {w1, earliest + delay + len};
+        if (a < w2) return new double[] {w2, grace + delay + len};
+        return new double[] {-1, -1};
     }
 
     static void schedule(Context c) {
