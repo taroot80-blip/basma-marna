@@ -116,7 +116,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        Ringer.stop(this);
         if (web != null) web.evaluateJavascript("window.onNativeResume&&window.onNativeResume()", null);
     }
 
@@ -245,6 +244,7 @@ public class MainActivity extends Activity {
                 if (in.has("permFrom")) d.put("permFrom", in.getDouble("permFrom"));
                 else if (in.optBoolean("reset")) d.remove("permFrom");
                 Store.putDay(MainActivity.this, date, d);
+                if (in.has("in") || in.has("pres") || in.has("out")) Notifier.doneAlerts(MainActivity.this);
                 Scheduler.schedule(MainActivity.this);
             } catch (JSONException ignored) { }
         }

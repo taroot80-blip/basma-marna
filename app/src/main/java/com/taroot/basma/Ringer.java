@@ -29,7 +29,32 @@ final class Ringer {
         return Store.cfg(c).optBoolean("loudBell", true);
     }
 
-    static synchronized void ring(Context c) {
+    /** جرس التنبيه الحقيقي: يرن بلا توقف حتى تُسجَّل البصمة، أو حتى حدّ أقصى للسلامة. */
+    static final long ALERT_MAX_MS = 10 * 60 * 1000L;
+    private static final Runnable GUARD = new Runnable() {
+        @Override public void run() {
+            if (player == null || appCtx == null) return;
+            try {
+                AudioManager am = appCtx.getSystemService(AudioManager.class);
+                int mx = am.getStreamMaxVolume(AudioManager.STREAM_ALARM);
+                if (am.getStreamVolume(AudioManager.STREAM_ALARM) < mx) am.setStreamVolume(AudioManager.STREAM_ALARM, mx, 0);
+                if (player != null && !player.isPlaying()) player.start();
+            } catch (Exception ignored) { }
+            H.postDelayed(this, 700);
+        }
+    };
+    private static Context appCtx;
+
+    static synchronized void ringAlert(Context c) {
+        ring(c, ALERT_MAX_MS);
+        appCtx = c.getApplicationContext();
+        H.removeCallbacks(GUARD);
+        H.postDelayed(GUARD, 700);
+    }
+
+    static synchronized void ring(Context c) { ring(c, RING_MS); }
+
+    static synchronized void ring(Context c, long ms) {
         Context app = c.getApplicationContext();
         stop(app);
         AudioManager am = app.getSystemService(AudioManager.class);
@@ -66,11 +91,13 @@ final class Ringer {
                 v.vibrate(VibrationEffect.createWaveform(new long[] {0, 800, 300, 800, 300, 800, 600}, 0));
         } catch (Exception ignored) { }
         H.removeCallbacks(STOP);
-        H.postDelayed(() -> stop(app), RING_MS);
+        H.postDelayed(() -> stop(app), ms);
     }
 
     static synchronized void stop(Context c) {
         H.removeCallbacks(STOP);
+        H.removeCallbacks(GUARD);
+        appCtx = null;
         if (player != null) {
             try { player.stop(); } catch (Exception ignored) { }
             try { player.release(); } catch (Exception ignored) { }

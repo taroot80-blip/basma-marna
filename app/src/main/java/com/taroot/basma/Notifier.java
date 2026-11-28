@@ -110,15 +110,24 @@ final class Notifier {
                 .setShowWhen(true)
                 .setUsesChronometer(true)
                 .setChronometerCountDown(true)
-                .setAutoCancel(true)
+                .setAutoCancel(false)
+                .setOngoing(Ringer.enabled(c))
                 .setTimeoutAfter(20 * 60 * 1000L)
+                .setFullScreenIntent(openApp(c), true)
                 .setContentIntent(openApp(c))
                 .addAction(act(c, "افتح تطبيق الوزارة", openMoe(c)));
         if (kind.startsWith("in")) b.addAction(act(c, "بصمتُ الحضور الآن", action(c, AlarmReceiver.ACT_IN, 74)));
         else if (kind.startsWith("pres")) b.addAction(act(c, "بصمتُ التواجد", action(c, AlarmReceiver.ACT_PRES, 71)));
         else b.addAction(act(c, "بصمتُ الانصراف", action(c, AlarmReceiver.ACT_OUT, 72)));
         c.getSystemService(NotificationManager.class).notify(id, b.build());
-        if (Ringer.enabled(c)) Ringer.ring(c);
+        if (Ringer.enabled(c)) Ringer.ringAlert(c);
+    }
+
+    /** إيقاف الجرس وإزالة إشعارات التنبيه بعد تسجيل البصمة. */
+    static void doneAlerts(Context c) {
+        Ringer.stop(c);
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        for (int i : new int[] {ID_IN_SOON, ID_IN_LAST, ID_PRES, ID_PRES_LAST, ID_OUT}) nm.cancel(i);
     }
 
     /** سؤال بعد إغلاق تطبيق الوزارة. */
